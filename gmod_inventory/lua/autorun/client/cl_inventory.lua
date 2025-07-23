@@ -18,25 +18,29 @@ if CLIENT then
 
     local function createSlot(parent, slotId)
         local slot = vgui.Create("DPanel", parent)
-        slot:SetSize(64,64)
-        slot.Paint = function(self,w,h)
-            surface.SetDrawColor(40,40,40,200)
-            surface.DrawRect(0,0,w,h)
+        slot:SetSize(64, 64)
+        slot.SlotId = slotId
+        slot.Paint = function(self, w, h)
+            surface.SetDrawColor(40, 40, 40, 200)
+            surface.DrawRect(0, 0, w, h)
         end
-        slot.DropTarget = slotId
-        slot.Receiver = "WD_Slot" .. slotId
-        function slot:OnDrop(mcanvas, dropped)
-            local wepClass = dropped.WepClass
-            if not wepClass then return end
-            if dropped.SlotId then
-                inventoryData.slots[dropped.SlotId] = nil
+
+        slot:Receiver("WD_Item", function(self, tbl, dropped, _, x, y)
+            if not dropped then return end
+            local pnl = tbl[1]
+            if not IsValid(pnl) or not pnl.WepClass then return end
+
+            if pnl.SlotId then
+                inventoryData.slots[pnl.SlotId] = nil
             end
-            inventoryData.slots[slotId] = wepClass
-            dropped:SetParent(nil)
-            dropped:Remove()
+
+            inventoryData.slots[slotId] = pnl.WepClass
+            pnl:SetParent(self)
+            pnl:SetPos(0, 0)
+            pnl.SlotId = slotId
             updateServer()
-            createInventory() -- refresh
-        end
+        end)
+
         return slot
     end
 
@@ -63,8 +67,6 @@ if CLIENT then
                 icon:SetModel(weapons.Get(wepClass) and weapons.Get(wepClass).WorldModel or "models/props_c17/oildrum001.mdl")
                 icon:SetSize(64,64)
                 icon:SetPos(0,0)
-                icon:SetDragParent(slot)
-                icon:SetDropTarget(false)
                 icon.WepClass = wepClass
                 icon.SlotId = i
                 icon:Droppable("WD_Item")
